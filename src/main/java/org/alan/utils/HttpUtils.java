@@ -1,17 +1,8 @@
 package org.alan.utils;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.NameValuePair;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
@@ -19,8 +10,14 @@ import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 public class HttpUtils {
 
@@ -34,6 +31,7 @@ public class HttpUtils {
     private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
 
     private static HttpClient httpClient = new HttpClient(connectionManager);
+
     {
         // 初始化最大连接数
         HttpConnectionManagerParams params = new HttpConnectionManagerParams();
@@ -45,11 +43,9 @@ public class HttpUtils {
     /**
      * post 请求，使用默认的header信息与UTF-8编码格式，其他请使用
      * {@link #doPost(String, Map, Map, String)}
-     * 
-     * @param url
-     *            请求url
-     * @param para
-     *            请求参数
+     *
+     * @param url  请求url
+     * @param para 请求参数
      * @return
      * @throws Exception
      */
@@ -60,20 +56,16 @@ public class HttpUtils {
 
     /**
      * 发送POST请求
-     * 
-     * @param url
-     *            请求的url链接
-     * @param para
-     *            post需要带上的表单参数，里面采用键值对的方式key-value
-     * @param headers
-     *            请求头
-     * @param http_content_charset
-     *            http传输内容编码字符集,如果传null。默认采用UTF-8
+     *
+     * @param url                  请求的url链接
+     * @param para                 post需要带上的表单参数，里面采用键值对的方式key-value
+     * @param headers              请求头
+     * @param http_content_charset http传输内容编码字符集,如果传null。默认采用UTF-8
      * @return
      * @throws Exception
      */
     public static HttpResponse doPost(String url, Map<String, String> para,
-            Map<String, String> headers, String http_content_charset)
+                                      Map<String, String> headers, String http_content_charset)
             throws Exception {
 
         String defaultHttpContentCharset = "UTF-8";
@@ -145,16 +137,25 @@ public class HttpUtils {
         return httpResponse;
     }
 
+    public static byte[] getBody(PostMethod postMethod) throws IOException {
+        InputStream inputStream = postMethod.getResponseBodyAsStream();
+        byte[] bytes = new byte[1024];
+        int n;
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        while ((n = inputStream.read(bytes)) != -1) {
+            bout.write(bytes, 0, n);
+        }
+        return bout.toByteArray();
+    }
+
     /**
      * 使用http get请求
-     * 
+     * <p>
      * 使用默认的头信息与UTF8编码，如果需要自定义头信息与编码消息，请使用
      * {@link #doGet(String, Map, Map, String, String)}
-     * 
-     * @param url
-     *            请求地址
-     * @param para
-     *            请求参数
+     *
+     * @param url  请求地址
+     * @param para 请求参数
      * @return
      * @throws Exception
      */
@@ -165,23 +166,18 @@ public class HttpUtils {
 
     /**
      * 发送GET请求
-     * 
-     * @param url
-     *            请求location
-     * @param para
-     *            url跟在后面的参数 map,里面采用键值对的方式key-value
-     * @param headers
-     *            请求头 map,里面采用键值对的方式key-value
-     * @param url_encode_charset
-     *            url格式编码字符集 如果传null。默认采用UTF-8
-     * @param http_content_charset
-     *            http传输内容编码字符集 如果传null。默认采用UTF-8
+     *
+     * @param url                  请求location
+     * @param para                 url跟在后面的参数 map,里面采用键值对的方式key-value
+     * @param headers              请求头 map,里面采用键值对的方式key-value
+     * @param url_encode_charset   url格式编码字符集 如果传null。默认采用UTF-8
+     * @param http_content_charset http传输内容编码字符集 如果传null。默认采用UTF-8
      * @return
      * @throws Exception
      */
     public static HttpResponse doGet(String url, Map<String, String> para,
-            Map<String, String> headers, String url_encode_charset,
-            String http_content_charset) throws Exception {
+                                     Map<String, String> headers, String url_encode_charset,
+                                     String http_content_charset) throws Exception {
         String urlParam = "";
         String defaultUrlEncodeCharset = "UTF-8";
         String defaultHttpContentCharset = "UTF-8";
@@ -263,20 +259,16 @@ public class HttpUtils {
 
     /**
      * 发送POST请求
-     * 
-     * @param url
-     *            请求的url链接
-     * @param para
-     *            post需要带上的表单参数，里面采用键值对的方式key-value
-     * @param headers
-     *            请求头
-     * @param http_content_charset
-     *            http传输内容编码字符集,如果传null。默认采用UTF-8
+     *
+     * @param url                  请求的url链接
+     * @param postBodyContent      body内容使用json格式提交
+     * @param headers              请求头
+     * @param http_content_charset http传输内容编码字符集,如果传null。默认采用UTF-8
      * @return
      * @throws Exception
      */
     public static HttpResponse doPost(String url, String postBodyContent,
-            Map<String, String> headers, String http_content_charset)
+                                      Map<String, String> headers, String http_content_charset)
             throws Exception {
 
         String defaultHttpContentCharset = "UTF-8";
@@ -295,7 +287,7 @@ public class HttpUtils {
             postMethod.setRequestEntity(new ByteArrayRequestEntity(
                     postBodyContent.getBytes(defaultHttpContentCharset)));
         }
-
+        postMethod.addRequestHeader("Content Type", "application/json");
         // 如果有设置header，则增加header
         if (headers != null && headers.size() > 0) {
             Set<String> headerSet = headers.keySet();
@@ -348,7 +340,7 @@ public class HttpUtils {
         private byte[] responseBody;
 
         // 返回的结果k-v表
-        private JsonObject resultMap;
+        private JSONObject resultMap;
 
         private boolean init;
 
@@ -374,8 +366,7 @@ public class HttpUtils {
             try {
                 if (!init) {
                     body = new String(responseBody, "utf-8").trim();
-                    Gson gson = new Gson();
-                    resultMap = gson.fromJson(body, JsonObject.class);
+                    resultMap = JSON.parseObject(body, JSONObject.class);
                 }
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
@@ -394,7 +385,7 @@ public class HttpUtils {
             if (resultMap == null) {
                 return null;
             }
-            return resultMap.get(key).getAsString();
+            return resultMap.getString(key);
         }
 
         public Integer getIntValue(String key) {
@@ -402,15 +393,15 @@ public class HttpUtils {
             if (resultMap == null) {
                 return null;
             }
-            return resultMap.get(key).getAsInt();
+            return resultMap.getInteger(key);
         }
 
-        public JsonObject getJsonObject(String key) {
+        public JSONObject getJsonObject(String key) {
             initResult();
             if (resultMap == null) {
                 return null;
             }
-            return resultMap.get(key).getAsJsonObject();
+            return resultMap.getJSONObject(key);
         }
 
         @Override

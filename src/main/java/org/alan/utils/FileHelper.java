@@ -3,22 +3,24 @@
  */
 package org.alan.utils;
 
+import com.csvreader.CsvReader;
+import info.monitorenter.cpdetector.CharsetPrinter;
+
 import java.beans.XMLEncoder;
 import java.io.*;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import com.csvreader.CsvReader;
-
-import info.monitorenter.cpdetector.CharsetPrinter;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 /**
  * 文件读取与解析帮助者类，用于读取指定文件，解析文件
- * 
+ *
  * @author 杨明伟
  * @version 1.0
  * @All rights reserved.
@@ -27,9 +29,8 @@ public class FileHelper {
 
     /**
      * 根据传入的文件名称读取文件,文件编码由系统自动判定
-     * 
-     * @param fileName
-     *            文件名称
+     *
+     * @param fileName 文件名称
      * @return
      */
     public static String readFile(String fileName) {
@@ -38,11 +39,9 @@ public class FileHelper {
 
     /**
      * 根据传入的文件名称读取文件
-     * 
-     * @param fileName
-     *            文件名称
-     * @param charsetName
-     *            编码，如果传入null，则由系统自动判定文件编码读取
+     *
+     * @param fileName    文件名称
+     * @param charsetName 编码，如果传入null，则由系统自动判定文件编码读取
      * @return
      */
     public static String readFile(String fileName, String charsetName) {
@@ -55,16 +54,46 @@ public class FileHelper {
         } else {
             return readFile(file, charsetName);
         }
+    }
 
+    /**
+     * Mapped File way MappedByteBuffer 可以在处理大文件时，提升性能
+     *
+     * @param filename
+     * @return
+     * @throws IOException
+     */
+    public static byte[] read(String filename) {
+
+        FileChannel fc = null;
+        try {
+            fc = new RandomAccessFile(filename, "r").getChannel();
+            MappedByteBuffer byteBuffer = fc.map(FileChannel.MapMode.READ_ONLY, 0,
+                    fc.size()).load();
+            System.out.println(byteBuffer.isLoaded());
+            byte[] result = new byte[(int) fc.size()];
+            if (byteBuffer.remaining() > 0) {
+                // System.out.println("remain");
+                byteBuffer.get(result, 0, byteBuffer.remaining());
+            }
+            return result;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new byte[0];
+        } finally {
+            try {
+                fc.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
      * 读取指定文件，返回文件内容
-     * 
-     * @param file
-     *            需要被读取的文件
-     * @param charsetName
-     *            读取文件采用的编码
+     *
+     * @param file        需要被读取的文件
+     * @param charsetName 读取文件采用的编码
      * @return
      */
     public static String readFile(File file, String charsetName) {
@@ -108,7 +137,7 @@ public class FileHelper {
     }
 
     public static List<String[]> readFileByDelimiter(File file,
-            char delimiter) {
+                                                     char delimiter) {
         List<String[]> values = new ArrayList<>();
         CsvReader reader = null;
         try {
@@ -128,7 +157,7 @@ public class FileHelper {
     }
 
     public static String[] resolveFileContent(String fileContent,
-            List<String[]> allValues) {
+                                              List<String[]> allValues) {
         String[] lineContent = fileContent.split("\r\n");
         if (lineContent == null || lineContent.length <= 1) {
             return null;
@@ -146,18 +175,14 @@ public class FileHelper {
 
     /**
      * 将指定的的内容保存到文件中
-     * 
-     * @param fileName
-     *            文件名（包括路径）
-     * @param bytes
-     *            需要保存的内容
-     * @param append
-     *            是否添加都文件后面
-     * @throws Exception
-     *             抛出异常
+     *
+     * @param fileName 文件名（包括路径）
+     * @param bytes    需要保存的内容
+     * @param append   是否添加都文件后面
+     * @throws Exception 抛出异常
      */
     public static void fileBytesWrite(String fileName, byte[] bytes,
-            boolean append) throws Exception {
+                                      boolean append) throws Exception {
         File file = new File(fileName);
         if (!file.exists()) {
             if (file.getParentFile() != null) {
@@ -170,13 +195,10 @@ public class FileHelper {
 
     /**
      * 保存指定的内容到文件中
-     * 
-     * @param file
-     *            用于保存的文件
-     * @param bytes
-     *            内容
-     * @param append
-     *            是否添加到后面
+     *
+     * @param file   用于保存的文件
+     * @param bytes  内容
+     * @param append 是否添加到后面
      */
     public static void fileBytesWrite(File file, byte[] bytes, boolean append) {
         FileOutputStream fos = null;
@@ -201,13 +223,10 @@ public class FileHelper {
 
     /**
      * 保存指定的内容到文件中
-     * 
-     * @param file
-     *            用于保存的文件
-     * @param content
-     *            内容
-     * @param append
-     *            是否添加到后面
+     *
+     * @param file    用于保存的文件
+     * @param content 内容
+     * @param append  是否添加到后面
      */
     public static void saveFile(File file, String content, boolean append) {
         FileOutputStream fos = null;
@@ -232,16 +251,13 @@ public class FileHelper {
 
     /**
      * 保存指定的内容到文件中
-     * 
-     * @param fileName
-     *            用于保存的文件名称
-     * @param content
-     *            内容
-     * @param append
-     *            是否添加到后面
+     *
+     * @param fileName 用于保存的文件名称
+     * @param content  内容
+     * @param append   是否添加到后面
      */
     public static void saveFile(String fileName, String content,
-            boolean append) {
+                                boolean append) {
         File file = new File(fileName);
         if (!file.exists()) {
             try {
@@ -255,7 +271,7 @@ public class FileHelper {
     }
 
     public static void saveObjectToXml(Object obj, String fileName,
-            boolean isAppend) {
+                                       boolean isAppend) {
         // 创建输出文件
         File fo = new File(fileName);
         // 文件不存在,就创建该文件
@@ -290,7 +306,7 @@ public class FileHelper {
 
     /**
      * 解压到指定目录
-     * 
+     *
      * @param zipPath
      * @param descDir
      * @author isea533
@@ -302,7 +318,7 @@ public class FileHelper {
 
     /**
      * 解压文件到指定目录
-     * 
+     *
      * @param zipFile
      * @param descDir
      * @author isea533
@@ -314,7 +330,7 @@ public class FileHelper {
             pathFile.mkdirs();
         }
         ZipFile zip = new ZipFile(zipFile);
-        for (Enumeration entries = zip.entries(); entries.hasMoreElements();) {
+        for (Enumeration entries = zip.entries(); entries.hasMoreElements(); ) {
             ZipEntry entry = (ZipEntry) entries.nextElement();
             String zipEntryName = entry.getName();
             InputStream in = zip.getInputStream(entry);
@@ -378,7 +394,7 @@ public class FileHelper {
 
     /**
      * 加载指定的属性文件，使用指定的编码
-     * 
+     *
      * @param fileName
      * @param charset
      * @return

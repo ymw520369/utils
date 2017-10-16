@@ -18,6 +18,51 @@ import java.util.TimeZone;
  * @author 杨明伟
  */
 public final class TimeHelper {
+    /* static fields */
+    /**
+     * 星期
+     */
+    public static final String[] WEEK = {"Sunday", "Monday", "Tuesday",
+            "Wednesday", "Thursday", "Friday", "Saturday"};
+    /**
+     * 星期简写
+     */
+    public static final String[] WEEK_ = {"Sun", "Mon", "Tue", "Wed", "Thu",
+            "Fri", "Sat"};
+    /**
+     * 月
+     */
+    public static final String[] MONTH = {"January", "February", "March",
+            "April", "May", "June", "July", "August", "September", "October",
+            "November", "December"};
+    /**
+     * 月简写
+     */
+    public static final String[] MONTH_ = {"Jan", "Feb", "Mar", "Apr", "May",
+            "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    /**
+     * 时间的修正值
+     */
+    private static long timeFix;
+
+    public static final String NULL = "未知", DROPED_YEAR = "年",
+            DROPED_MONTH = "月", DROPED_DAY = "日", DROPED_SPLIT = ":",
+            NULL_SPLIT = "", ZONE_SPLIT = "0",
+            SPRING = "春", SUMMER = "夏", AUTUMN = "秋", WINTER = "冬";
+
+    /**
+     * 时间转换成毫秒数
+     */
+    public static final int ONE_SECOND = 1000, ONE_MINUTE = 60 * ONE_SECOND,
+            ONE_HOUR = 60 * ONE_MINUTE, ONE_DAY = 24 * ONE_HOUR;
+
+    /**
+     * 北京时间(<b>GMT+8区</b>)标准日历对象
+     */
+    private static Calendar calendarG8 = Calendar.getInstance(TimeZone.getDefault());
+    private static final SimpleDateFormat dateFormat1 = new SimpleDateFormat(
+            "yyyyMMddHHmmss");
     /**
      * 一小时的秒数
      */
@@ -34,6 +79,7 @@ public final class TimeHelper {
      * 本地时间处理器
      */
     public static DateFormat LocaleDateFormat = null;
+
     /**
      * 时间格式,默认值为yyyy-MM-dd HH:mm:ss
      */
@@ -83,7 +129,7 @@ public final class TimeHelper {
      * @return 返回1970年1月1日到目标时间的毫秒数，如果传入的时间格式不对，则返回-1
      */
     public static long getTimeMillisBy(String strDate) {
-        return getTimeMillis(strDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        return getTimeMillis(strDate, dateFormat);
     }
 
     /**
@@ -93,7 +139,7 @@ public final class TimeHelper {
      */
     public static DateFormat getDateFormat() {
         if (LocaleDateFormat == null) {
-            LocaleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss",
+            LocaleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                     new DateFormatSymbols());
             LocaleDateFormat.setTimeZone(TimeZone.getTimeZone(""));
         }
@@ -400,6 +446,18 @@ public final class TimeHelper {
      */
     public static String getDate() {
         Date date = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd",
+                new DateFormatSymbols());
+        return simpleDateFormat.format(date);
+    }
+
+    /**
+     * 打印当前时间，采用默认的年月日
+     *
+     * @return
+     */
+    public static String getDateTime() {
+        Date date = new Date();
         return getDateFormat().format(date);
     }
 
@@ -521,6 +579,38 @@ public final class TimeHelper {
         // 当前的年份
         int currentHour = calendar.get(Calendar.HOUR_OF_DAY);
         return currentHour;
+    }
+
+    /**
+     * 获得当前系统时间几日前/后(负数表示前正数表示后)凌晨的时间 day=0表示指定时间那天的凌晨 返回(毫秒) 没加时区
+     */
+    public static long getDaysTime(int day) {
+        return getDaysTime(System.currentTimeMillis(), day);
+    }
+
+    /**
+     * 获得指定时间的几日前/后(负数表示前正数表示后)凌晨的时间 day=0表示指定时间那天的凌晨 返回(毫秒) 没加时区
+     */
+    public static long getDaysTime(long time, int day) {
+        GregorianCalendar now = new GregorianCalendar();
+        now.setTimeInMillis(time);
+        now.setTimeZone(TimeZone.getDefault());
+        now.set(Calendar.HOUR_OF_DAY, 0);
+        now.set(Calendar.MINUTE, 0);
+        now.set(Calendar.SECOND, 0);
+        now.set(Calendar.MILLISECOND, 0);
+        now.set(Calendar.DATE, now.get(Calendar.DATE) + day);
+
+        return now.getTimeInMillis();
+    }
+
+    /**
+     * 根据 yyyy-MM-dd HH:mm:ss 的时间格式获得毫秒数
+     */
+    public static long getFormatDate(String time) {
+        if (time == null || time.trim().equals(NULL_SPLIT))
+            return -1;
+        return getTimeMillisBy(time);
     }
 
 }
